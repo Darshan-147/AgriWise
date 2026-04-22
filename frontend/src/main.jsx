@@ -6,7 +6,7 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { gsap } from 'gsap';
 import './index.css';
-import './utils/i18n.js'
+import './utils/i18n.js';
 // Optional: Configure GSAP globally if needed
 gsap.config({
   autoSleep: 60,

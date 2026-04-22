@@ -4,10 +4,7 @@ import ForgotPasswordForm from '../components/auth/ForgotPassword';
 
 const ForgotPassword = () => {
   return (
-    <AuthLayout 
-      title="Forgot Password" 
-      subtitle="We'll help you reset your password"
-    >
+    <AuthLayout title="Forgot Password" subtitle="We'll help you reset your password">
       <ForgotPasswordForm />
     </AuthLayout>
   );

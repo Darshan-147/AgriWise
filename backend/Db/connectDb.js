@@ -1,13 +1,13 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
+import config from "../Config/app.config.js";
 
 const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log('MongoDB connected...');
-  } catch (err) {
-    console.error(err.message);
-    process.exit(1);
+  if (!config.mongoUri) {
+    throw new Error("MONGO_URI is not configured.");
   }
+
+  await mongoose.connect(config.mongoUri);
+  console.log("MongoDB connected.");
 };
 
 export default connectDB;

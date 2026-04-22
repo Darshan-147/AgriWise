@@ -1,26 +1,28 @@
 import asyncHandler from "./asyncHandler.js";
-import nodemailer from 'nodemailer';
-import CompanyDetail from "../Config/env.js";
+import nodemailer from "nodemailer";
+import emailConfig from "../Config/env.js";
 
 const sendEmail = asyncHandler(async (options) => {
-    // Creating the transportation
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: CompanyDetail.EMAIL,
-            pass: CompanyDetail.PASSWORD,
-        }
-    });
+  if (!emailConfig.EMAIL || !emailConfig.PASSWORD) {
+    throw new Error("Email credentials are not configured.");
+  }
 
-    // Define email that what you want to send to the user.
-    const emailOption = {
-        from: CompanyDetail.EMAIL,
-        to: options.email,
-        subject: options.subject,
-        html: options.message,
-    }
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: emailConfig.EMAIL,
+      pass: emailConfig.PASSWORD,
+    },
+  });
 
-    await transporter.sendMail(emailOption);
+  const emailOption = {
+    from: emailConfig.EMAIL,
+    to: options.email,
+    subject: options.subject,
+    html: options.message,
+  };
+
+  await transporter.sendMail(emailOption);
 });
 
 export default sendEmail;

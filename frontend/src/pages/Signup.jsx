@@ -5,14 +5,14 @@ import SignupForm from '../components/auth/SignupForm';
 
 const Signup = () => {
   const [activeRole, setActiveRole] = useState('user');
-  
+
   const handleRoleChange = (role) => {
     setActiveRole(role);
   };
-  
+
   return (
-    <AuthLayout 
-      title="Create Account" 
+    <AuthLayout
+      title="Create Account"
       subtitle="Sign up to join our credit scoring platform"
       activeRole={activeRole}
     >

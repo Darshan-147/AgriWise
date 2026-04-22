@@ -1,6 +1,8 @@
-const config = {
-    EMAIL: "aryandtejani4771@gmail.com",
-    PASSWORD: "nphifqcooqxjkzak",
+import config from "./app.config.js";
+
+const emailConfig = {
+  EMAIL: config.emailUser,
+  PASSWORD: config.emailPassword,
 };
 
-export default config;
+export default emailConfig;

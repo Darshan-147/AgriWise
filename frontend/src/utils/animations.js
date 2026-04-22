@@ -14,7 +14,7 @@ export const fadeOut = (element, callback) => {
     y: -20,
     duration: 0.3,
     ease: 'power2.in',
-    onComplete: callback
+    onComplete: callback,
   });
 };
 
@@ -22,12 +22,12 @@ export const staggerItems = (elements, staggerTime = 0.1) => {
   gsap.fromTo(
     elements,
     { opacity: 0, y: 20 },
-    { 
-      opacity: 1, 
-      y: 0, 
-      duration: 0.4, 
-      stagger: staggerTime, 
-      ease: 'power2.out' 
+    {
+      opacity: 1,
+      y: 0,
+      duration: 0.4,
+      stagger: staggerTime,
+      ease: 'power2.out',
     }
   );
 };
@@ -38,6 +38,6 @@ export const pulseAnimation = (element) => {
     duration: 0.3,
     repeat: 1,
     yoyo: true,
-    ease: 'power2.inOut'
+    ease: 'power2.inOut',
   });
 };

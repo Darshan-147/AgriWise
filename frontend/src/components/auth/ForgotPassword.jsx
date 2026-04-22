@@ -30,17 +30,17 @@ const ForgotPassword = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validate()) return;
-    
+
     const result = await forgotPassword({ email });
-    
+
     if (result.success) {
       setAlert({
         type: 'success',
         message: 'Password reset link has been sent to your email.',
       });
-      
+
       // Redirect to login page after a short delay
       setTimeout(() => {
         navigate('/login');
@@ -55,20 +55,14 @@ const ForgotPassword = () => {
 
   return (
     <div>
-      {alert && (
-        <Alert 
-          type={alert.type} 
-          message={alert.message} 
-          onClose={() => setAlert(null)} 
-        />
-      )}
-      
+      {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}
+
       <div className="text-center mb-4">
         <p className="text-gray-600">
           Enter your email address and we'll send you a link to reset your password.
         </p>
       </div>
-      
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           label="Email"
@@ -81,22 +75,12 @@ const ForgotPassword = () => {
           error={error}
           required
         />
-        
-        <Button
-          type="submit"
-          variant="primary"
-          fullWidth
-          isLoading={loading}
-        >
+
+        <Button type="submit" variant="primary" fullWidth isLoading={loading}>
           Send Reset Link
         </Button>
-        
-        <Button
-          type="button"
-          variant="outline"
-          fullWidth
-          onClick={() => navigate('/login')}
-        >
+
+        <Button type="button" variant="outline" fullWidth onClick={() => navigate('/login')}>
           Back to Login
         </Button>
       </form>

@@ -22,7 +22,7 @@ const ResetPassword = () => {
       ...formData,
       [name]: value,
     });
-    
+
     // Clear error when user types
     if (errors[name]) {
       setErrors({
@@ -34,36 +34,36 @@ const ResetPassword = () => {
 
   const validate = () => {
     const newErrors = {};
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
     }
-    
+
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validate()) return;
-    
+
     const result = await resetPassword(token, formData);
-    
+
     if (result.success) {
       setAlert({
         type: 'success',
         message: 'Password reset successful!',
       });
-      
+
       // Redirect to login page after a short delay
       setTimeout(() => {
         navigate('/login');
@@ -78,20 +78,12 @@ const ResetPassword = () => {
 
   return (
     <div>
-      {alert && (
-        <Alert 
-          type={alert.type} 
-          message={alert.message} 
-          onClose={() => setAlert(null)} 
-        />
-      )}
-      
+      {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}
+
       <div className="text-center mb-4">
-        <p className="text-gray-600">
-          Create a new password for your account
-        </p>
+        <p className="text-gray-600">Create a new password for your account</p>
       </div>
-      
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           label="New Password"
@@ -104,7 +96,7 @@ const ResetPassword = () => {
           error={errors.password}
           required
         />
-        
+
         <Input
           label="Confirm New Password"
           type="password"
@@ -116,13 +108,8 @@ const ResetPassword = () => {
           error={errors.confirmPassword}
           required
         />
-        
-        <Button
-          type="submit"
-          variant="primary"
-          fullWidth
-          isLoading={loading}
-        >
+
+        <Button type="submit" variant="primary" fullWidth isLoading={loading}>
           Reset Password
         </Button>
       </form>

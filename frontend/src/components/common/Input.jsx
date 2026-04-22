@@ -24,7 +24,7 @@ const Input = ({
         { y: 20, opacity: 0 },
         { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out' }
       );
-      
+
       gsap.fromTo(
         inputRef.current,
         { y: 20, opacity: 0 },
@@ -36,11 +36,7 @@ const Input = ({
   return (
     <div className={`mb-4 ${className}`}>
       {label && (
-        <label 
-          ref={labelRef}
-          htmlFor={id} 
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
+        <label ref={labelRef} htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
@@ -53,8 +49,8 @@ const Input = ({
         onChange={onChange}
         placeholder={placeholder}
         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-          error 
-            ? 'border-red-500 focus:ring-red-300' 
+          error
+            ? 'border-red-500 focus:ring-red-300'
             : 'border-gray-300 focus:ring-green-300 focus:border-green-500'
         }`}
         required={required}

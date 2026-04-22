@@ -1,53 +1,75 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import cors from 'cors';
-import morgan from 'morgan';
-import dataRoutes from './routes/data.routes.js';
-import authRoutes from './routes/auth.routes.js';
-import connectDB from './Db/connectDb.js';
-import authRoutes2 from './routes/auth2.route.js';
-import creditRoutes from "./routes/credit.routes.js"
-import getAllRoutes from "./routes/getall.controller+routes.js"
-// Load environment variables
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import morgan from "morgan";
+import dataRoutes from "./routes/data.routes.js";
+import authRoutes from "./routes/auth.routes.js";
+import connectDB from "./Db/connectDb.js";
+import authRoutes2 from "./routes/auth2.route.js";
+import creditRoutes from "./routes/credit.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import config from "./Config/app.config.js";
+import { globalErrorHandler, notFoundHandler } from "./Middleware/error.middleware.js";
+
 dotenv.config();
 
-// Initialize Express app
 const app = express();
 
-// Middleware
-app.use(express.json());
-app.use(cors());
-app.use(morgan('dev'));
-connectDB();
+const allowedOrigins = new Set(config.corsOrigins);
 
-app.use('/api', dataRoutes);
-app.use('/auth', authRoutes);
-app.use('/auth2',authRoutes2)
-app.use('/credit',creditRoutes)
-app.use('/users',getAllRoutes)
-// Sample Route
-app.get('/', (req, res) => {
-  res.send('Server is running...');
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.size === 0 || allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("CORS origin is not allowed."));
+    },
+    credentials: true,
+  })
+);
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+
+if (config.nodeEnv !== "test") {
+  app.use(morgan(config.nodeEnv === "production" ? "combined" : "dev"));
+}
+
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "success",
+    message: "Bluelock backend is running.",
+  });
 });
 
-// Define the port
-const PORT = process.env.PORT || 5000;
-
-// Function to start the server
-const startServer = (port) => {
-  const server = app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "success",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
   });
+});
 
-  server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      console.log(`Port ${port} is in use, trying port ${port}`);
-      startServer(port + 1);
-    } else {
-      console.error(err);
-    }
-  });
+app.use("/api", dataRoutes);
+app.use("/auth", authRoutes);
+app.use("/auth2", authRoutes2);
+app.use("/credit", creditRoutes);
+app.use("/users", userRoutes);
+
+app.use(notFoundHandler);
+app.use(globalErrorHandler);
+
+const startServer = async () => {
+  try {
+    await connectDB();
+    app.listen(config.port, () => {
+      console.log(`Server is running on http://localhost:${config.port}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error.message);
+    process.exit(1);
+  }
 };
 
-// Start the server
-startServer(PORT);
+startServer();

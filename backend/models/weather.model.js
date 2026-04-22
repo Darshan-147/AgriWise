@@ -1,7 +1,8 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const WeatherSchema = new mongoose.Schema({
-    village: { type: mongoose.Schema.Types.ObjectId, ref: 'Village', required: true }, // Reference to Village
+const WeatherSchema = new mongoose.Schema(
+  {
+    village: { type: mongoose.Schema.Types.ObjectId, ref: "Village", required: true, index: true },
     coord: {
       lon: Number,
       lat: Number,
@@ -31,7 +32,7 @@ const WeatherSchema = new mongoose.Schema({
       gust: Number,
     },
     rain: {
-      '1h': { type: Number, required: false },
+      "1h": { type: Number, required: false },
     },
     clouds: {
       all: Number,
@@ -51,4 +52,6 @@ const WeatherSchema = new mongoose.Schema({
   { timestamps: true }
 );
 
-export default mongoose.model('Weather', WeatherSchema);
+WeatherSchema.index({ village: 1, createdAt: -1 });
+
+export default mongoose.model("Weather", WeatherSchema);

@@ -7,33 +7,33 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import enTranslations from './locales/en.json';
 import hiTranslations from './locales/hi.json';
 import guTranslations from './locales/gu.json';
-import taTranslations from './locales/ta.json'
-import teTranslations from './locales/te.json'
-import paTranslations from './locales/pa.json'
-import maTranslations from './locales/ma.json'
+import taTranslations from './locales/ta.json';
+import teTranslations from './locales/te.json';
+import paTranslations from './locales/pa.json';
+import maTranslations from './locales/ma.json';
 // Resources object containing all translations
 const resources = {
   en: {
-    translation: enTranslations
+    translation: enTranslations,
   },
   hi: {
-    translation: hiTranslations
+    translation: hiTranslations,
   },
   gu: {
-    translation: guTranslations
+    translation: guTranslations,
   },
   ta: {
-    translation: taTranslations
+    translation: taTranslations,
   },
   te: {
-    translation: teTranslations
+    translation: teTranslations,
   },
   pa: {
-    translation: paTranslations
+    translation: paTranslations,
   },
-  ma:{
-    translation:maTranslations
-  }
+  ma: {
+    translation: maTranslations,
+  },
 };
 
 i18n
@@ -44,18 +44,18 @@ i18n
     resources,
     fallbackLng: 'en',
     debug: process.env.NODE_ENV === 'development',
-    
+
     interpolation: {
       escapeValue: false, // not needed for React as it escapes by default
     },
-    
+
     detection: {
       order: ['querystring', 'cookie', 'localStorage', 'navigator'],
       lookupQuerystring: 'lng',
       lookupCookie: 'i18next',
       lookupLocalStorage: 'i18nextLng',
-      caches: ['localStorage', 'cookie']
-    }
+      caches: ['localStorage', 'cookie'],
+    },
   });
 
 export default i18n;

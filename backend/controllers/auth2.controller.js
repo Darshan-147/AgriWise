@@ -1,510 +1,481 @@
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
+import { promisify } from "util";
+import bcrypt from "bcryptjs";
 import uploadOnCloudinary from "../Utils/FileUpload.js";
 import User from "../models/user.model.js";
-import jwt from 'jsonwebtoken';
 import asyncHandler from "../Utils/asyncHandler.js";
-import bcrypt from 'bcryptjs';
-import { promisify } from 'util';
 import sendEmail from "../Utils/email.js";
-import crypto from 'crypto';
 import ApiError from "../Utils/ApiError.js";
+import config from "../Config/app.config.js";
 
-// first is payload. second is secret String and header will be automatically created
+const allowedRoles = new Set(["admin", "user"]);
 
-const signToken = id => {
-    // This function takes an `id` as an argument and creates a JWT with that `id`.
-    // The JWT payload contains the `id` passed as an argument.
-    // The second argument is the secret key used to sign the token.
-    // The third argument is an options object, where `expiresIn` specifies the token's expiration time.
+const unwrapValue = (value) => {
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value).trim();
+  }
 
-    return jwt.sign({ id }, process.env.SUPER_SECRET_STRING, {
-        expiresIn: process.env.LOGIN_EXPIRES
-    });
-}
+  if (value && typeof value === "object") {
+    for (const nestedValue of Object.values(value)) {
+      const extractedValue = unwrapValue(nestedValue);
 
-export const signup = asyncHandler(async (req, res, next) => {
-    try {
-        const newUser = await User.create(req.body);
-        // json token consists of three 
-        /**
-         * 1. header: that tells as that which method is used in this.
-         * 2. payload: This will store the information like.
-         * 3. signature: This will consists of payload, header and secret string.
-         */
-
-        const token = signToken(newUser._id);
-
-        res.cookie('token', token, { httpOnly: true, secure: true });
-
-        res.status(201).json({
-            status: 'success',
-            token,
-            data: {
-                user: newUser
-            }
-        });
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).send(error);
+      if (extractedValue) {
+        return extractedValue;
+      }
     }
+  }
+
+  return "";
+};
+
+const normalizeEmail = (value) => unwrapValue(value).toLowerCase();
+const normalizeRole = (value) => unwrapValue(value).toLowerCase();
+
+const signToken = (id) =>
+  jwt.sign({ id }, config.jwtSecret, {
+    expiresIn: config.jwtExpiresIn,
+  });
+
+const serializeUser = (user) => ({
+  id: user._id,
+  username: user.username,
+  email: user.email,
+  role: user.role,
+  profilePic: user.profilePic,
+  notVerified: Boolean(user.notVerified),
 });
 
-// For login
-export const login = asyncHandler(async (req, res, next) => {
-    const { email, password } = req.body;
+const buildEmailTemplate = ({ heading, description, code, note }) => `
+  <div style="font-family:Arial,sans-serif;background:#f6f7fb;padding:24px;">
+    <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;">
+      <h1 style="margin:0 0 12px;color:#0f172a;">${heading}</h1>
+      <p style="margin:0 0 20px;color:#475569;line-height:1.6;">${description}</p>
+      ${
+        code
+          ? `<div style="font-size:28px;font-weight:700;letter-spacing:6px;color:#2563eb;background:#eff6ff;border-radius:12px;padding:16px 20px;text-align:center;">${code}</div>`
+          : ""
+      }
+      <p style="margin:20px 0 0;color:#64748b;line-height:1.6;">${note}</p>
+    </div>
+  </div>
+`;
 
-    if (!email || !password) {
-        throw new Error('Please provide email id and password for login in!');
-    }
+const sendAuthToken = (res, user, statusCode, message) => {
+  const token = signToken(user._id);
 
-    const user = await User.findOne({ email }).select('notVerified').select('+password').select('role')
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: config.nodeEnv === "production",
+    sameSite: "lax",
+  });
 
-    // to check whether users have verified their email id through otp or not?
-    if (user.notVerified) {
-        console.log("User is not verified.");
-        res.status(200).json({
-            status: "success",
-            message: "User is not verified.",
-            notVerified: true
-        });
-        return;
-    }
+  return res.status(statusCode).json({
+    status: "success",
+    message,
+    token,
+    role: user.role,
+    data: {
+      user: serializeUser(user),
+    },
+  });
+};
 
-    // Check is user exists and password matches
-    if (!user || !(await user.checkPassword(password, user.password))) {
-        throw new Error("email or password is not valid.");
-    }
+const getUserForAuth = async (email) =>
+  User.findOne({ email }).select("+password +notVerified");
 
-    const token = signToken(user._id);
+export const signup = asyncHandler(async (req, res) => {
+  const username = unwrapValue(req.body.username);
+  const email = normalizeEmail(req.body.email);
+  const password = unwrapValue(req.body.password);
+  const confirmPassword = unwrapValue(req.body.confirmPassword);
+  const role = normalizeRole(req.body.role) || "user";
 
-    res.status(200).json({
-        status: 'success',
-        token,
-        role: user.role,
-        message: "Login successfull.",
-        notVerified: false
+  if (!username || !email || !password || !confirmPassword) {
+    throw new ApiError(400, "Username, email, password, and confirmPassword are required.");
+  }
+
+  if (password.length < 8) {
+    throw new ApiError(400, "Password must be at least 8 characters long.");
+  }
+
+  if (password !== confirmPassword) {
+    throw new ApiError(400, "Password and confirm password do not match.");
+  }
+
+  if (!allowedRoles.has(role)) {
+    throw new ApiError(400, "Invalid role selected.");
+  }
+
+  const existingUser = await User.findOne({ email });
+
+  if (existingUser) {
+    throw new ApiError(409, "An account with this email already exists.");
+  }
+
+  const newUser = await User.create({
+    username,
+    email,
+    password,
+    confirmPassword,
+    role,
+  });
+
+  return sendAuthToken(
+    res,
+    newUser,
+    201,
+    "Account created successfully. Please verify your email."
+  );
+});
+
+export const login = asyncHandler(async (req, res) => {
+  const email = normalizeEmail(req.body.email);
+  const password = unwrapValue(req.body.password);
+
+  if (!email || !password) {
+    throw new ApiError(400, "Please provide email and password.");
+  }
+
+  const user = await getUserForAuth(email);
+
+  if (!user || !(await bcrypt.compare(password, user.password))) {
+    throw new ApiError(401, "Email or password is not valid.");
+  }
+
+  if (user.notVerified) {
+    return res.status(200).json({
+      status: "success",
+      message: "User is not verified.",
+      notVerified: true,
     });
+  }
+
+  return sendAuthToken(res, user, 200, "Login successful.");
+});
+
+export const logout = asyncHandler(async (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: config.nodeEnv === "production",
+    sameSite: "lax",
+  });
+
+  res.status(200).json({
+    status: "success",
+    message: "Logged out successfully.",
+  });
 });
 
 export const protect = asyncHandler(async (req, res, next) => {
-    const newToken = req.headers.authorization;
-    let token;
-    if (newToken && newToken.startsWith('Bearer')) {
-        token = newToken.split(' ')[1];
-    }
+  const authorizationHeader = req.headers.authorization;
+  let token = null;
 
-    console.log("This is free token: ", token);
+  if (authorizationHeader?.startsWith("Bearer ")) {
+    token = authorizationHeader.split(" ")[1];
+  }
 
-    if (!token) {
-        console.log("This is inside !token", token);
-        throw new Error("Invalid authorization token. Please provide a valid token.");
-    }
+  if (!token) {
+    throw new ApiError(401, "Invalid authorization token. Please provide a valid token.");
+  }
 
-    // 2. validate token
-    try {
-        const decodedToken = await promisify(jwt.verify)(token, process.env.SUPER_SECRET_STRING);
-        token = decodedToken;
-    } catch (error) {
-        throw new Error("Token has expired.");
-    }
+  let decodedToken;
 
-    // 3. If user does not exits.
-    const user = await User.findById(token.id);
-    console.log(user);
-    if (!user) throw new Error("The user with given token doen not exits.");
+  try {
+    decodedToken = await promisify(jwt.verify)(token, config.jwtSecret);
+  } catch (error) {
+    throw new ApiError(401, "Token has expired or is invalid.");
+  }
 
-    // 4. If user changed password after the token was issued.
-    if (user.isPasswordChanged(token.iat)) {
-        throw new Error("The password has been changed recently. Please login again.");
-    }
+  const user = await User.findById(decodedToken.id).select("+notVerified");
 
-    // 5. Allow user to access route.
-    req.user = user;
-    next();
+  if (!user) {
+    throw new ApiError(401, "The user with the provided token no longer exists.");
+  }
+
+  if (user.isPasswordChanged(decodedToken.iat)) {
+    throw new ApiError(401, "Your password changed recently. Please log in again.");
+  }
+
+  req.user = user;
+  next();
 });
 
-// Forgot password post req
-export const forgotPassword = asyncHandler(async (req, res, next) => {
-    // 1. get the user.
-    const { email } = req.body;
-    console.log(email)
-    const user = await User.findOne({ email });
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const email = normalizeEmail(req.body.email);
 
-    if (!user) {
-        throw new Error("We could not find the user with given email.");
-    }
+  if (!email) {
+    throw new ApiError(400, "Email is required.");
+  }
 
-    // 2. generate random reset token.
-    const resetToken = user.createResetPasswordToken();
+  const user = await User.findOne({ email });
 
-    // Save the values
-    await user.save({ validateBeforeSave: false });
+  if (!user) {
+    throw new ApiError(404, "We could not find a user with that email.");
+  }
 
-    // Creating the url
-    const resetUrl = `http://localhost:5173/resetPassword/${resetToken}`;
-    // 3. send email to the user with reset token.
-    const message = `We have received a password request. 
-    Please use the below link to reset your password\n\n
-    ${resetUrl}\n\nThis reset password will be valid only for 10 minutes.`
-    try {
-        await sendEmail({
-            email: user.email,
-            subject: 'Password change request received',
-            message: message,
-        });
+  const resetToken = user.createResetPasswordToken();
+  await user.save({ validateBeforeSave: false });
 
-        res.status(200).json({
-            status: true,
-            message: "password reset link send to user email"
-        });
+  const resetUrl = `${config.clientUrl}/reset-password/${resetToken}`;
+  const message = buildEmailTemplate({
+    heading: "Reset your password",
+    description:
+      "We received a request to reset your password. Use the link below to choose a new one.",
+    note: `Reset link: ${resetUrl}<br /><br />This link is valid for 10 minutes.`,
+  });
 
-    } catch (error) {
-        user.PasswordResetToken = undefined;
-        user.PasswordResetTokenExpires = undefined;
-        user.save({ validateBeforeSave: false });
-
-        throw new Error("There was an error sending password reset email. Please try again later");
-    }
-});
-
-// Reset the possword
-export const resetPassword = asyncHandler(async (req, res, next) => {
-    // 1. Receive the token from the email link
-    const token = crypto.createHash('sha256').update(req.params.token).digest('hex');
-    const user = await User.findOne({ PasswordResetToken: token, PasswordResetTokenExpires: { $gt: Date.now() } });
-
-    // Check if user is exists or not (There are two reason if passwordChangedAt is not greter than current data 
-    //  then user will be assigned to undefind if token is not found )
-    if (!user) {
-        throw new Error("Token has expired or it is invalid token.");
-    }
-
-    // If user is exists then 
-    user.password = req.body.password;
-    user.confirmPassword = req.body.confirmPassword;
-    user.PasswordResetTokenExpires = undefined;
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "Password reset request",
+      message,
+    });
+  } catch (error) {
     user.PasswordResetToken = undefined;
-    user.PasswordChangedAt = Date.now();
-
-    await user.save();
-    const loginToken = signToken(user._id);
-    res.status(200).json({
-        status: 'success',
-        token: loginToken,
-        message: "Password reset successfully.",
-    })
-});
-
-// sending mail for otp verification
-export const getVarified = async (req, res) => {
-    console.log("Request body:", req.body); 
-    const { emailId } = req.body;
-    const user = await User.findOne({ email: emailId });
-    if (!user) throw new ApiError("User not found");
-
-    // Generate otp for user email verification
-    let otp = await user.generateOtp();
-
+    user.PasswordResetTokenExpires = undefined;
     await user.save({ validateBeforeSave: false });
+    throw new ApiError(500, "There was an error sending the reset email. Please try again later.");
+  }
 
-    let message = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>OTP Verification</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 0;
-                background-color: #f9f9f9;
-            }
-            .container {
-                max-width: 600px;
-                margin: 20px auto;
-                padding: 20px;
-                background-color: #ffffff;
-                border-radius: 10px;
-                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            }
-            h1 {
-                color: #f67d30;
-                text-align: center;
-            }
-            .content {
-                margin-top: 20px;
-                text-align: center;
-            }
-            .otp-code {
-                font-size: 24px;
-                background-color: #f67d30;
-                color: #ffffff;
-                padding: 10px 20px;
-                border-radius: 5px;
-                display: inline-block;
-            }
-            .note {
-                margin-top: 20px;
-                font-style: italic;
-                color: #666666;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>URBAN VOGUE</h1>
-            <div class="content">
-                <p>Dear User,</p>
-                <p>Thank you for registering with URBAN VOGUE. Your OTP for email verification is:</p>
-                <div class="otp-code">${otp}</div>
-                <p>Please use this OTP to verify your email address and complete your registration process.</p>
-                <p class="note">Note: This OTP is valid for a limited time.</p>
-            </div>
-        </div>
-    </body>
-    </html>
-`;
-
-
-    try {
-        sendEmail({
-            email: user.email,
-            subject: 'Verify your email',
-            message: message,
-        });
-
-        res.status(200).json({
-            status: true,
-            message: "otp send to user email"
-        });
-
-    } catch (error) {
-        user.otp = undefined;
-        user.save({ validateBeforeSave: false });
-        throw new Error("There was an error sending password otp email. Please try again later");
-    }
-}
-
-export const verifyOtp = async (req, res) => {
-    const { userOtp } = req.body;
-
-    try {
-        // Find OTP
-        const hashedOtp = crypto.createHash('sha256').update(userOtp).digest('hex');
-        const user = await User.findOne({ otp: hashedOtp });
-
-        // If user not found
-        if (!user) {
-            return res.status(404).json({ success: false, message: "User not found" });
-        }
-
-        if (user) {
-            user.notVerified = false;
-            user.otp = undefined;
-            await user.save({ validateBeforeSave: false });
-            return res.status(200).json({ success: true, message: "OTP verification successful" });
-        } else {
-            return res.status(400).json({ success: false, message: "Invalid OTP" });
-        }
-    } catch (error) {
-        console.error("OTP verification error:", error);
-        return res.status(500).json({ success: false, message: "Internal server error" });
-    }
-}
-
-export const deleteMe = asyncHandler(async (req, res, next) => {
-    await User.findByIdAndUpdate(req.user.id, { active: false });
-
-    res.status(204).json({
-        status: 'success',
-        data: null,
-    });
+  res.status(200).json({
+    status: true,
+    message: "Password reset link sent to the registered email address.",
+  });
 });
 
-export const getCurrentUser = asyncHandler(async (req, res, next) => {
-    const user = await User.findById(req.user.id)
-        .select("profilePic username email notVerified role -_id");
+export const resetPassword = asyncHandler(async (req, res) => {
+  const token = crypto.createHash("sha256").update(req.params.token).digest("hex");
+  const password = unwrapValue(req.body.password);
+  const confirmPassword = unwrapValue(req.body.confirmPassword);
 
-    res.status(200).json({
-        status: true,
-        data: user,
-        notVerified: user.notVerified,
-    });
+  if (!password || !confirmPassword) {
+    throw new ApiError(400, "Password and confirmPassword are required.");
+  }
+
+  if (password !== confirmPassword) {
+    throw new ApiError(400, "Password and confirm password do not match.");
+  }
+
+  const user = await User.findOne({
+    PasswordResetToken: token,
+    PasswordResetTokenExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    throw new ApiError(400, "Token has expired or is invalid.");
+  }
+
+  user.password = password;
+  user.confirmPassword = confirmPassword;
+  user.PasswordResetToken = undefined;
+  user.PasswordResetTokenExpires = undefined;
+  user.PasswordChangedAt = Date.now();
+
+  await user.save();
+
+  return sendAuthToken(res, user, 200, "Password reset successfully.");
 });
 
+export const getVarified = asyncHandler(async (req, res) => {
+  const email = normalizeEmail(req.body.emailId);
 
-export const updateProfile = async (req, res, next) => {
-    const userId = req.user.id;
-    const { username } = req.body;
-    const mainImageFile = req.file;
+  if (!email) {
+    throw new ApiError(400, "Email is required to request OTP.");
+  }
 
-    if (!mainImageFile) {
-        return res.status(400).json({ message: 'Main image is required' });
-    }
+  const user = await User.findOne({ email });
 
-    if (!username) {
-        return res.status(400).json({ error: 'At least one field (username, profilePic) must be provided for update.' });
-    }
+  if (!user) {
+    throw new ApiError(404, "User not found.");
+  }
 
-    try {
-        const user = await User.findById(userId).select("profilePic username");
+  const otp = await user.generateOtp();
+  await user.save({ validateBeforeSave: false });
 
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        const mainImageResult = await uploadOnCloudinary(mainImageFile.path);
-
-        if (!mainImageResult) {
-            return res.status(500).json({ message: 'Failed to upload main image to Cloudinary' });
-        }
-
-        if (username) user.username = username;
-        if (mainImageResult.url) user.profilePic = mainImageResult.url;
-
-        await user.save({ validateBeforeSave: false });
-        const updatedUser = user.toObject();
-        delete updatedUser._id;
-        res.status(200).json({ message: 'User profile updated successfully', user: updatedUser });
-    } catch (error) {
-        console.error('Error updating user profile:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-}
-
-
-
-
-// for changing the email.(Send the otp to the user email)
-export const changeEmailVerificationOtpReq = async (req, res) => {
-    const { emailId } = req.body;
-    const user = await User.findOne({ email: emailId });
-    if (!user) throw new ApiError("User not found");
-
-    // Generate otp for user email verification
-    let changeEmailVerificationOtp = await user.generateOtpForChangingEmail();
-
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "Verify your email",
+      message: buildEmailTemplate({
+        heading: "Email verification",
+        description: "Use the OTP below to verify your Bluelock account.",
+        code: otp,
+        note: "This OTP is valid for a limited time.",
+      }),
+    });
+  } catch (error) {
+    user.otp = undefined;
     await user.save({ validateBeforeSave: false });
+    throw new ApiError(500, "There was an error sending the OTP email. Please try again later.");
+  }
 
-    let message = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>OTP Verification</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 0;
-                background-color: #f9f9f9;
-            }
-            .container {
-                max-width: 600px;
-                margin: 20px auto;
-                padding: 20px;
-                background-color: #ffffff;
-                border-radius: 10px;
-                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            }
-            h1 {
-                color: #f67d30;
-                text-align: center;
-            }
-            .content {
-                margin-top: 20px;
-                text-align: center;
-            }
-            .otp-code {
-                font-size: 24px;
-                background-color: #f67d30;
-                color: #ffffff;
-                padding: 10px 20px;
-                border-radius: 5px;
-                display: inline-block;
-            }
-            .note {
-                margin-top: 20px;
-                font-style: italic;
-                color: #666666;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>URBAN FURNIX</h1>
-            <div class="content">
-                <p>Dear User,</p>
-                <p>we have received email change request use this otp to change the email.</p>
-                <div class="otp-code">${changeEmailVerificationOtp}</div>
-                <p>Please use this OTP to change your email address and complete your process.</p>
-                <p class="note">Note: This OTP is valid for a limited time.</p>
-            </div>
-        </div>
-    </body>
-    </html>
-`;
+  res.status(200).json({
+    status: true,
+    message: "OTP sent to the registered email address.",
+  });
+});
 
-    try {
-        sendEmail({
-            email: user.email,
-            subject: 'Verify your email',
-            message: message,
-        });
+export const verifyOtp = asyncHandler(async (req, res) => {
+  const userOtp = unwrapValue(req.body.userOtp);
 
-        res.status(200).json({
-            status: true,
-            message: "otp send to user email"
-        });
+  if (!userOtp) {
+    throw new ApiError(400, "OTP is required.");
+  }
 
-    } catch (error) {
-        user.changeEmailVerificationOtp = undefined;
-        user.save({ validateBeforeSave: false });
-        throw new Error("There was an error sending password otp email. Please try again later");
+  const hashedOtp = crypto.createHash("sha256").update(userOtp).digest("hex");
+  const user = await User.findOne({ otp: hashedOtp }).select("+notVerified");
+
+  if (!user) {
+    throw new ApiError(404, "Invalid or expired OTP.");
+  }
+
+  user.notVerified = false;
+  user.otp = undefined;
+  await user.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    success: true,
+    message: "OTP verification successful.",
+  });
+});
+
+export const deleteMe = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(req.user.id, { active: false });
+
+  res.status(204).json({
+    status: "success",
+    data: null,
+  });
+});
+
+export const getCurrentUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id).select("+notVerified");
+
+  if (!user) {
+    throw new ApiError(404, "User not found.");
+  }
+
+  res.status(200).json({
+    status: true,
+    data: serializeUser(user),
+    notVerified: user.notVerified,
+  });
+});
+
+export const updateProfile = asyncHandler(async (req, res) => {
+  const username = unwrapValue(req.body.username);
+  const mainImageFile = req.file;
+
+  if (!username && !mainImageFile) {
+    throw new ApiError(400, "Provide at least one field to update.");
+  }
+
+  const user = await User.findById(req.user.id).select("+notVerified");
+
+  if (!user) {
+    throw new ApiError(404, "User not found.");
+  }
+
+  if (username) {
+    user.username = username;
+  }
+
+  if (mainImageFile) {
+    const imageUploadResult = await uploadOnCloudinary(mainImageFile.path);
+
+    if (!imageUploadResult?.url) {
+      throw new ApiError(500, "Failed to upload profile image.");
     }
-}
 
-export const changeEmailVerifyOtp = async (req, res) => {
-    const { userOtp } = req.body;
+    user.profilePic = imageUploadResult.url;
+  }
 
-    try {
-        // Find OTP
-        const hashedOtp = crypto.createHash('sha256').update(userOtp).digest('hex');
-        const user = await User.findOne({ changeEmailVerificationOtp: hashedOtp });
+  await user.save({ validateBeforeSave: false });
 
-        // If user not found
-        if (!user) {
-            return res.status(404).json({ changeEmailSuccess: false, message: "User not found" });
-        }
+  res.status(200).json({
+    status: "success",
+    message: "User profile updated successfully.",
+    user: serializeUser(user),
+  });
+});
 
-        if (user) {
-            user.changeEmailVerificationOtp = undefined;
-            await user.save({ validateBeforeSave: false });
-            return res.status(200).json({ changeEmailSuccess: true, message: "email change OTP verification successful" });
-        } else {
-            return res.status(400).json({ changeEmailSuccess: false, message: "Invalid OTP" });
-        }
-    } catch (error) {
-        console.error("OTP verification error:", error);
-        return res.status(500).json({ changeEmailSuccess: false, message: "Internal server error" });
-    }
-}
+export const changeEmailVerificationOtpReq = asyncHandler(async (req, res) => {
+  const email = normalizeEmail(req.body.emailId || req.user.email);
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new ApiError(404, "User not found.");
+  }
+
+  const otp = await user.generateOtpForChangingEmail();
+  await user.save({ validateBeforeSave: false });
+
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "Verify your email change",
+      message: buildEmailTemplate({
+        heading: "Email change verification",
+        description: "Use the OTP below to approve the email change request on your account.",
+        code: otp,
+        note: "If you did not request this change, you can ignore this email.",
+      }),
+    });
+  } catch (error) {
+    user.changeEmailVerificationOtp = undefined;
+    await user.save({ validateBeforeSave: false });
+    throw new ApiError(500, "There was an error sending the OTP email. Please try again later.");
+  }
+
+  res.status(200).json({
+    status: true,
+    message: "Email change OTP sent successfully.",
+  });
+});
+
+export const changeEmailVerifyOtp = asyncHandler(async (req, res) => {
+  const userOtp = unwrapValue(req.body.userOtp);
+
+  if (!userOtp) {
+    throw new ApiError(400, "OTP is required.");
+  }
+
+  const hashedOtp = crypto.createHash("sha256").update(userOtp).digest("hex");
+  const user = await User.findOne({ changeEmailVerificationOtp: hashedOtp });
+
+  if (!user) {
+    throw new ApiError(404, "Invalid or expired OTP.");
+  }
+
+  user.changeEmailVerificationOtp = undefined;
+  await user.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    changeEmailSuccess: true,
+    message: "Email change OTP verification successful.",
+  });
+});
 
 export const changeRole = asyncHandler(async (req, res) => {
-    console.log("Api is hit for role")
-    try {
-        const userId = req.user.id;
-        const user = await User.findById(userId);
+  const role = normalizeRole(req.body.role);
 
-        if (!user) return res.status(401).json({ message: "User not found", success: false });
+  if (!allowedRoles.has(role)) {
+    throw new ApiError(400, "A valid role is required.");
+  }
 
-        user.role = "admin";
-        await user.save({ validateBeforeSave: false });
-        res.status(200).json({ success: true, message: "Role changed successfully." })
-    } catch (error) {
-        res.status(500).json({ success: false, message: "internel server error" })
-    }
+  const user = await User.findById(req.user.id).select("+notVerified");
+
+  if (!user) {
+    throw new ApiError(404, "User not found.");
+  }
+
+  user.role = role;
+  await user.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    success: true,
+    message: "Role changed successfully.",
+    data: serializeUser(user),
+  });
 });

@@ -2,15 +2,15 @@ import React from 'react';
 import { gsap } from 'gsap';
 import { useEffect, useRef } from 'react';
 
-const Button = ({ 
-  children, 
-  onClick, 
-  type = 'button', 
-  variant = 'primary', 
+const Button = ({
+  children,
+  onClick,
+  type = 'button',
+  variant = 'primary',
   disabled = false,
   className = '',
   fullWidth = false,
-  isLoading = false
+  isLoading = false,
 }) => {
   const buttonRef = useRef(null);
 
@@ -21,7 +21,7 @@ const Button = ({
         opacity: 1,
         duration: 0.5,
         ease: 'power2.out',
-        delay: 0.2
+        delay: 0.2,
       });
     }
   }, []);

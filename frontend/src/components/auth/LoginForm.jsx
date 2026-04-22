@@ -1,18 +1,18 @@
 // src/components/auth/LoginForm.jsx
-import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import Input from "../common/Input";
-import Button from "../common/Button";
-import Alert from "../common/Alert";
-import { useAuth } from "../../hooks/useAuth";
-import { gsap } from "gsap";
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import Input from '../common/Input';
+import Button from '../common/Button';
+import Alert from '../common/Alert';
+import { useAuth } from '../../hooks/useAuth';
+import { gsap } from 'gsap';
 
 const LoginForm = ({ onRoleChange }) => {
   const [formData, setFormData] = useState({
-    email: "",
-    password: "",
+    email: '',
+    password: '',
   });
-  const [activeRole, setActiveRole] = useState("user"); // Default to farmer login
+  const [activeRole, setActiveRole] = useState('user'); // Default to farmer login
   const [errors, setErrors] = useState({});
   const [alert, setAlert] = useState(null);
   const { login, loading } = useAuth();
@@ -34,7 +34,7 @@ const LoginForm = ({ onRoleChange }) => {
       gsap.fromTo(
         formRef.current,
         { opacity: 0, y: 10 },
-        { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }
+        { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }
       );
     }
   }, [activeRole]);
@@ -50,7 +50,7 @@ const LoginForm = ({ onRoleChange }) => {
     if (errors[name]) {
       setErrors({
         ...errors,
-        [name]: "",
+        [name]: '',
       });
     }
   };
@@ -59,13 +59,13 @@ const LoginForm = ({ onRoleChange }) => {
     const newErrors = {};
 
     if (!formData.email) {
-      newErrors.email = "Email is required";
+      newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
+      newErrors.email = 'Email is invalid';
     }
 
     if (!formData.password) {
-      newErrors.password = "Password is required";
+      newErrors.password = 'Password is required';
     }
 
     setErrors(newErrors);
@@ -81,28 +81,26 @@ const LoginForm = ({ onRoleChange }) => {
 
     if (result.success) {
       // Check if the user's role matches the selected role tab
-      if (result.role === "user" && activeRole === "user") {
-        navigate("/farmer-dashboard");
-      } else if (result.role === "admin" && activeRole === "admin") {
-        navigate("/agent-dashboard");
+      if (result.role === 'user' && activeRole === 'user') {
+        navigate('/farmer-dashboard');
+      } else if (result.role === 'admin' && activeRole === 'admin') {
+        navigate('/agent-dashboard');
       } else {
         // If roles don't match, show an error
         setAlert({
-          type: "error",
+          type: 'error',
           message: `You're trying to log in as a ${
-            activeRole === "user" ? "Farmer" : "Agent"
-          }, but your account is registered as a ${
-            result.role === "user" ? "Farmer" : "Agent"
-          }.`,
+            activeRole === 'user' ? 'Farmer' : 'Agent'
+          }, but your account is registered as a ${result.role === 'user' ? 'Farmer' : 'Agent'}.`,
         });
       }
     } else if (result.notVerified) {
-      localStorage.setItem("tempEmail", formData.email);
-      navigate("/verify-otp");
+      localStorage.setItem('tempEmail', formData.email);
+      navigate('/verify-otp');
     } else {
       setAlert({
-        type: "error",
-        message: result.error || "Login failed. Please check your credentials.",
+        type: 'error',
+        message: result.error || 'Login failed. Please check your credentials.',
       });
     }
   };
@@ -112,13 +110,13 @@ const LoginForm = ({ onRoleChange }) => {
     if (role === activeRole) return;
 
     // Animate the tab indicator
-    const indicator = document.querySelector(".tab-indicator");
+    const indicator = document.querySelector('.tab-indicator');
     if (indicator) {
-      const targetPosition = role === "user" ? "0%" : "50%";
+      const targetPosition = role === 'user' ? '0%' : '50%';
       gsap.to(indicator, {
         left: targetPosition,
         duration: 0.3,
-        ease: "power2.inOut",
+        ease: 'power2.inOut',
       });
     }
 
@@ -131,33 +129,23 @@ const LoginForm = ({ onRoleChange }) => {
 
   return (
     <div>
-      {alert && (
-        <Alert
-          type={alert.type}
-          message={alert.message}
-          onClose={() => setAlert(null)}
-        />
-      )}
+      {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}
 
       {/* Role selection tabs */}
       <div ref={tabsRef} className="relative mb-6 rounded-lg bg-gray-100 p-1">
         <div className="flex">
           <button
-            onClick={() => handleRoleTabClick("user")}
+            onClick={() => handleRoleTabClick('user')}
             className={`relative z-10 flex-1 py-2 text-center text-sm font-medium transition-colors duration-200 ${
-              activeRole === "user"
-                ? "text-white"
-                : "text-gray-700 hover:text-gray-900"
+              activeRole === 'user' ? 'text-white' : 'text-gray-700 hover:text-gray-900'
             }`}
           >
             Farmer Login
           </button>
           <button
-            onClick={() => handleRoleTabClick("admin")}
+            onClick={() => handleRoleTabClick('admin')}
             className={`relative z-10 flex-1 py-2 text-center text-sm font-medium transition-colors duration-200 ${
-              activeRole === "admin"
-                ? "text-white"
-                : "text-gray-700 hover:text-gray-900"
+              activeRole === 'admin' ? 'text-white' : 'text-gray-700 hover:text-gray-900'
             }`}
           >
             Agent Login
@@ -167,18 +155,14 @@ const LoginForm = ({ onRoleChange }) => {
           <div
             className="tab-indicator absolute top-1 bottom-1 w-1/2 rounded-md transition-all duration-200"
             style={{
-              left: activeRole === "user" ? "0%" : "50%",
-              backgroundColor: activeRole === "user" ? "#16a34a" : "#2563eb",
+              left: activeRole === 'user' ? '0%' : '50%',
+              backgroundColor: activeRole === 'user' ? '#16a34a' : '#2563eb',
             }}
           ></div>
         </div>
       </div>
 
-      <div
-        ref={formRef}
-        key={activeRole}
-        className="transition-all duration-300"
-      >
+      <div ref={formRef} key={activeRole} className="transition-all duration-300">
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
             label="Email"
@@ -215,11 +199,11 @@ const LoginForm = ({ onRoleChange }) => {
 
           <Button
             type="submit"
-            variant={activeRole === "user" ? "primary" : "secondary"}
+            variant={activeRole === 'user' ? 'primary' : 'secondary'}
             fullWidth
             isLoading={loading}
           >
-            Log In as {activeRole === "user" ? "Farmer" : "Agent"}
+            Log In as {activeRole === 'user' ? 'Farmer' : 'Agent'}
           </Button>
         </form>
       </div>

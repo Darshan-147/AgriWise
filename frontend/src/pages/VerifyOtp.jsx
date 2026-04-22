@@ -4,8 +4,8 @@ import OtpVerification from '../components/auth/OtpVerification';
 
 const VerifyOtp = () => {
   return (
-    <AuthLayout 
-      title="Email Verification" 
+    <AuthLayout
+      title="Email Verification"
       subtitle="Enter the verification code sent to your email"
     >
       <OtpVerification />

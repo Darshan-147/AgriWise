@@ -1,6 +1,13 @@
-import { createContext, useState, useEffect } from "react";
-import { authService } from "../services/api";
-import { useNavigate } from "react-router-dom";
+/**
+ * Auth Context
+ * Global authentication state management
+ */
+
+import { createContext, useState, useEffect } from 'react';
+import { authService } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import { authStorage } from '../utils/storage';
+import { handleError, logger } from '../utils';
 
 export const AuthContext = createContext();
 
@@ -10,15 +17,19 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  /**
+   * Check if user is already logged in on mount
+   */
   useEffect(() => {
     const checkLoggedIn = async () => {
-      const token = localStorage.getItem("token");
+      const token = authStorage.getToken();
       if (token) {
         try {
           const { data } = await authService.getCurrentUser();
           setUser(data.data);
         } catch (err) {
-          localStorage.removeItem("token");
+          logger.error('Failed to fetch current user:', err);
+          authStorage.clearAuth();
         }
       }
       setLoading(false);
@@ -27,8 +38,9 @@ export const AuthProvider = ({ children }) => {
     checkLoggedIn();
   }, []);
 
-  // src/context/AuthContext.jsx (update the login method)
-
+  /**
+   * User login
+   */
   const login = async (credentials) => {
     try {
       setLoading(true);
@@ -36,109 +48,123 @@ export const AuthProvider = ({ children }) => {
       const { data } = await authService.login(credentials);
 
       if (data.notVerified) {
-        localStorage.setItem("tempEmail", credentials.email);
-        navigate("/verify-otp");
+        authStorage.setTempEmail(credentials.email);
+        navigate('/verify-otp');
         return { notVerified: true };
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role);
+      authStorage.setToken(data.token);
+      authStorage.setRole(data.role);
 
       const userData = await authService.getCurrentUser();
       setUser(userData.data.data);
+      logger.info('User logged in successfully');
 
       return { success: true, role: data.role };
     } catch (err) {
-      console.error("Login error:", err);
-      const errorMessage = err.response?.data?.message || "Login failed";
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
+      const errorData = handleError(err);
+      setError(errorData.message);
+      logger.error('Login error:', errorData);
+      return { success: false, error: errorData.message };
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * User registration
+   */
   const signup = async (userData) => {
     try {
       setLoading(true);
       setError(null);
-      // Make sure the role is included in the signup request
       const { data } = await authService.signup(userData);
-      localStorage.setItem("tempEmail", userData.email);
-      localStorage.setItem("tempRole", userData.role); // Store role for later use
+      authStorage.setTempEmail(userData.email);
+      logger.info('Signup successful, OTP sent');
       return { success: true };
     } catch (err) {
-      console.error("Signup error:", err);
-      const errorMessage = err.response?.data?.message || "Signup failed";
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
+      const errorData = handleError(err);
+      setError(errorData.message);
+      logger.error('Signup error:', errorData);
+      return { success: false, error: errorData.message };
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * User logout
+   */
   const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
+    authStorage.clearAuth();
     setUser(null);
-    navigate("/login");
+    logger.info('User logged out');
+    navigate('/login');
   };
 
+  /**
+   * Request OTP
+   */
   const requestOtp = async (email) => {
     try {
       setLoading(true);
       await authService.getOtp({ emailId: email });
+      logger.info('OTP sent to email');
       return { success: true };
     } catch (err) {
-      return {
-        success: false,
-        error: err.response?.data?.message || "Failed to send OTP",
-      };
+      const errorData = handleError(err);
+      return { success: false, error: errorData.message };
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * Verify OTP
+   */
   const verifyOtp = async (otp) => {
     try {
       setLoading(true);
       const { data } = await authService.verifyOtp({ userOtp: otp });
+      logger.info('OTP verified successfully');
       return { success: data.success };
     } catch (err) {
-      return {
-        success: false,
-        error: err.response?.data?.message || "OTP verification failed",
-      };
+      const errorData = handleError(err);
+      return { success: false, error: errorData.message };
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * Request password reset
+   */
   const forgotPassword = async (email) => {
     try {
       setLoading(true);
       const { data } = await authService.forgotPassword(email);
+      logger.info('Password reset email sent');
       return { success: data.status };
     } catch (err) {
-      return {
-        success: false,
-        error: err.response?.data?.message || "Failed to process request",
-      };
+      const errorData = handleError(err);
+      return { success: false, error: errorData.message };
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * Reset password
+   */
   const resetPassword = async (token, passwords) => {
     try {
       setLoading(true);
-      const { data } = await authService.resetPassword(token, passwords);
+      await authService.resetPassword(token, passwords);
+      logger.info('Password reset successfully');
       return { success: true };
     } catch (err) {
-      return {
-        success: false,
-        error: err.response?.data?.message || "Password reset failed",
-      };
+      const errorData = handleError(err);
+      return { success: false, error: errorData.message };
     } finally {
       setLoading(false);
     }

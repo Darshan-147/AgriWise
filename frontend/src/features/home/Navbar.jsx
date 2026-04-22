@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useContext } from "react";
-import { FaGlobe, FaUserCircle, FaRobot } from "react-icons/fa";
-import { HiOutlineChartBar, HiMenu, HiX } from "react-icons/hi";
-import { Link, useNavigate } from "react-router-dom";
-import logo from "../assets/mainlogo.png";
-import { useTranslation } from "react-i18next";
-import { AuthContext } from "../context/AuthContext";
+import React, { useState, useEffect, useContext } from 'react';
+import { FaGlobe, FaUserCircle, FaRobot } from 'react-icons/fa';
+import { HiOutlineChartBar, HiMenu, HiX } from 'react-icons/hi';
+import { Link, useNavigate } from 'react-router-dom';
+import logo from '../../assets/mainlogo.png';
+import { useTranslation } from 'react-i18next';
+import { AuthContext } from '../../context/AuthContext';
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -19,22 +19,22 @@ const Navbar = () => {
       i18n.changeLanguage(lng);
       setLangMenuOpen(false);
     } catch (error) {
-      console.error("Error changing language:", error);
+      console.error('Error changing language:', error);
     }
   };
 
   const languages = [
-    { code: "en", name: "English" },
-    { code: "hi", name: "हिन्दी" },
-    { code: "gu", name: "ગુજરાતી" },
-    { code: "pa", name: "ਪੰਜਾਬੀ" },
-    { code: "ma", name: "मराठी" },
-    { code: "ta", name: "தமிழ்" },
-    { code: "te", name: "తెలుగు" },
+    { code: 'en', name: 'English' },
+    { code: 'hi', name: 'हिन्दी' },
+    { code: 'gu', name: 'ગુજરાતી' },
+    { code: 'pa', name: 'ਪੰਜਾਬੀ' },
+    { code: 'ma', name: 'मराठी' },
+    { code: 'ta', name: 'தமிழ்' },
+    { code: 'te', name: 'తెలుగు' },
   ];
 
   const handleLogin = () => {
-    navigate("/login");
+    navigate('/login');
   };
 
   const handleLogout = () => {
@@ -44,44 +44,44 @@ const Navbar = () => {
 
   const handleDashboard = () => {
     // Navigate to different dashboards based on user role
-    const userRole = user?.role || localStorage.getItem("role");
+    const userRole = user?.role || localStorage.getItem('role');
 
-    if (userRole === "admin") {
-      navigate("/farmer-dashboard");
+    if (userRole === 'admin') {
+      navigate('/farmer-dashboard');
     } else {
-      navigate("/agent-dashboard");
+      navigate('/agent-dashboard');
     }
 
     setUserMenuOpen(false);
   };
 
   const handlePersonalizedAI = () => {
-    navigate("/personalised-ai");
+    navigate('/personalised-ai');
   };
 
   // Smooth scroll function
   const handleSmoothScroll = (e, targetId) => {
     e.preventDefault();
-    
+
     // Close mobile menu if open
     if (mobileMenuOpen) {
       setMobileMenuOpen(false);
     }
-    
+
     // Find the target element to scroll to
     const targetElement = document.getElementById(targetId);
-    
+
     if (targetElement) {
       // Scroll smoothly to the target element
       targetElement.scrollIntoView({
         behavior: 'smooth',
-        block: 'start'
+        block: 'start',
       });
     } else if (targetId === 'home') {
       // If home, scroll to top
       window.scrollTo({
         top: 0,
-        behavior: 'smooth'
+        behavior: 'smooth',
       });
     }
   };
@@ -93,7 +93,7 @@ const Navbar = () => {
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <Link to="/">
-              <img className="h-14 w-[80px]" src={logo} alt="FarmCredit Logo" />
+                <img className="h-14 w-[80px]" src={logo} alt="FarmCredit Logo" />
               </Link>
             </div>
             <div className="hidden md:block">
@@ -103,35 +103,35 @@ const Navbar = () => {
                   onClick={(e) => handleSmoothScroll(e, 'home')}
                   className="text-white hover:text-emerald-400 px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  {t("navbar.home")}
+                  {t('navbar.home')}
                 </a>
                 <a
                   href="#data-integration"
                   onClick={(e) => handleSmoothScroll(e, 'data-integration')}
                   className="text-emerald-100 hover:text-emerald-400 px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  {t("navbar.dataIntegration")}
+                  {t('navbar.dataIntegration')}
                 </a>
                 <a
                   href="#credit-scoring"
                   onClick={(e) => handleSmoothScroll(e, 'credit-scoring')}
                   className="text-emerald-100 hover:text-emerald-400 px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  {t("navbar.creditScoring")}
+                  {t('navbar.creditScoring')}
                 </a>
                 <a
                   href="#user-access"
                   onClick={(e) => handleSmoothScroll(e, 'user-access')}
                   className="text-emerald-100 hover:text-emerald-400 px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  {t("navbar.userAccess")}
+                  {t('navbar.userAccess')}
                 </a>
                 <a
                   href="#compliance"
                   onClick={(e) => handleSmoothScroll(e, 'compliance')}
                   className="text-emerald-100 hover:text-emerald-400 px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  {t("navbar.compliance")}
+                  {t('navbar.compliance')}
                 </a>
               </div>
             </div>
@@ -153,8 +153,7 @@ const Navbar = () => {
                 className="flex items-center text-emerald-100 hover:text-emerald-400 px-3 py-2 rounded-md text-sm font-medium"
               >
                 <FaGlobe className="mr-2" />
-                {languages.find((lang) => lang.code === i18n.language)?.name ||
-                  "English"}
+                {languages.find((lang) => lang.code === i18n.language)?.name || 'English'}
               </button>
 
               {/* Language Dropdown Menu */}
@@ -167,8 +166,8 @@ const Navbar = () => {
                         onClick={() => changeLanguage(language.code)}
                         className={`block w-full text-left px-4 py-2 text-sm ${
                           i18n.language === language.code
-                            ? "text-emerald-400 bg-gray-700"
-                            : "text-emerald-100 hover:bg-gray-700"
+                            ? 'text-emerald-400 bg-gray-700'
+                            : 'text-emerald-100 hover:bg-gray-700'
                         }`}
                         role="menuitem"
                       >
@@ -188,17 +187,13 @@ const Navbar = () => {
                   className="flex items-center text-emerald-100 hover:text-emerald-400 px-3 py-2 rounded-md text-sm font-medium"
                 >
                   <FaUserCircle className="mr-2 h-5 w-5" />
-                  {user.name || "User"}
+                  {user.name || 'User'}
                 </button>
 
                 {/* User Menu Dropdown */}
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
-                    <div
-                      className="py-1"
-                      role="menu"
-                      aria-orientation="vertical"
-                    >
+                    <div className="py-1" role="menu" aria-orientation="vertical">
                       <button
                         onClick={handleDashboard}
                         className="block w-full text-left px-4 py-2 text-sm text-emerald-100 hover:bg-gray-700"
@@ -250,42 +245,42 @@ const Navbar = () => {
       </div>
 
       {/* Mobile menu */}
-      <div className={`md:hidden ${mobileMenuOpen ? "block" : "hidden"}`}>
+      <div className={`md:hidden ${mobileMenuOpen ? 'block' : 'hidden'}`}>
         <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-gray-900 border-b border-emerald-800">
           <a
             href="#home"
             onClick={(e) => handleSmoothScroll(e, 'home')}
             className="text-white block px-3 py-2 rounded-md text-base font-medium"
           >
-            {t("navbar.home")}
+            {t('navbar.home')}
           </a>
           <a
             href="#data-integration"
             onClick={(e) => handleSmoothScroll(e, 'data-integration')}
             className="text-emerald-100 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
           >
-            {t("navbar.dataIntegration")}
+            {t('navbar.dataIntegration')}
           </a>
           <a
             href="#credit-scoring"
             onClick={(e) => handleSmoothScroll(e, 'credit-scoring')}
             className="text-emerald-100 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
           >
-            {t("navbar.creditScoring")}
+            {t('navbar.creditScoring')}
           </a>
           <a
             href="#user-access"
             onClick={(e) => handleSmoothScroll(e, 'user-access')}
             className="text-emerald-100 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
           >
-            {t("navbar.userAccess")}
+            {t('navbar.userAccess')}
           </a>
           <a
             href="#compliance"
             onClick={(e) => handleSmoothScroll(e, 'compliance')}
             className="text-emerald-100 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
           >
-            {t("navbar.compliance")}
+            {t('navbar.compliance')}
           </a>
 
           {/* Mobile Personalized AI Button */}
@@ -334,8 +329,8 @@ const Navbar = () => {
                 onClick={() => changeLanguage(language.code)}
                 className={`block w-full text-left px-4 py-2 text-sm ${
                   i18n.language === language.code
-                    ? "text-emerald-400 bg-gray-700"
-                    : "text-emerald-100 hover:bg-gray-700"
+                    ? 'text-emerald-400 bg-gray-700'
+                    : 'text-emerald-100 hover:bg-gray-700'
                 }`}
                 role="menuitem"
               >

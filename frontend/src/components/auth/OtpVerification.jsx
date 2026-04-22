@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import Input from "../common/Input";
-import Button from "../common/Button";
-import Alert from "../common/Alert";
-import { useAuth } from "../../hooks/useAuth";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Input from '../common/Input';
+import Button from '../common/Button';
+import Alert from '../common/Alert';
+import { useAuth } from '../../hooks/useAuth';
 
 const OtpVerification = () => {
-  const [otp, setOtp] = useState("");
+  const [otp, setOtp] = useState('');
   const [countdown, setCountdown] = useState(60);
   const [resendDisabled, setResendDisabled] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [alert, setAlert] = useState(null);
   const { verifyOtp, requestOtp, loading } = useAuth();
   const navigate = useNavigate();
 
-  const email = localStorage.getItem("tempEmail");
+  const email = localStorage.getItem('tempEmail');
 
   useEffect(() => {
     if (!email) {
-      navigate("/login");
+      navigate('/login');
       return;
     }
 
@@ -35,14 +35,14 @@ const OtpVerification = () => {
 
   const handleChange = (e) => {
     setOtp(e.target.value);
-    if (error) setError("");
+    if (error) setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!otp) {
-      setError("Please enter the OTP");
+      setError('Please enter the OTP');
       return;
     }
 
@@ -50,19 +50,19 @@ const OtpVerification = () => {
 
     if (result.success) {
       setAlert({
-        type: "success",
-        message: "Email verified successfully!",
+        type: 'success',
+        message: 'Email verified successfully!',
       });
 
       // Clear temporary email
-      localStorage.removeItem("tempEmail");
+      localStorage.removeItem('tempEmail');
 
       // Redirect to login page after a short delay
       setTimeout(() => {
-        navigate("/login");
+        navigate('/login');
       }, 1500);
     } else {
-      setError(result.error || "Invalid OTP. Please try again.");
+      setError(result.error || 'Invalid OTP. Please try again.');
     }
   };
 
@@ -72,8 +72,8 @@ const OtpVerification = () => {
 
       if (result.success) {
         setAlert({
-          type: "success",
-          message: "OTP resent successfully!",
+          type: 'success',
+          message: 'OTP resent successfully!',
         });
 
         // Reset countdown
@@ -81,8 +81,8 @@ const OtpVerification = () => {
         setResendDisabled(true);
       } else {
         setAlert({
-          type: "error",
-          message: result.error || "Failed to resend OTP. Please try again.",
+          type: 'error',
+          message: result.error || 'Failed to resend OTP. Please try again.',
         });
       }
     }
@@ -90,13 +90,7 @@ const OtpVerification = () => {
 
   return (
     <div>
-      {alert && (
-        <Alert
-          type={alert.type}
-          message={alert.message}
-          onClose={() => setAlert(null)}
-        />
-      )}
+      {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}
 
       <div className="text-center mb-4">
         <p className="text-gray-600">
@@ -126,18 +120,16 @@ const OtpVerification = () => {
 
       <div className="mt-4 text-center">
         <p className="text-sm text-gray-600">
-          Didn't receive the code?{" "}
+          Didn't receive the code?{' '}
           <button
             type="button"
             onClick={handleResendOtp}
             disabled={resendDisabled}
             className={`font-medium ${
-              resendDisabled
-                ? "text-gray-400 cursor-not-allowed"
-                : "text-green-600 hover:underline"
+              resendDisabled ? 'text-gray-400 cursor-not-allowed' : 'text-green-600 hover:underline'
             }`}
           >
-            {resendDisabled ? `Resend in ${countdown}s` : "Resend OTP"}
+            {resendDisabled ? `Resend in ${countdown}s` : 'Resend OTP'}
           </button>
         </p>
       </div>

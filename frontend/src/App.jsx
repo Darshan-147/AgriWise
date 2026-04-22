@@ -1,36 +1,42 @@
-// src/App.jsx
-import React from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import VerifyOtp from "./pages/VerifyOtp";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import FarmerDashboard from "./pages/FarmerDashboard";
-import AgentDashboard from "./pages/AgentDashboard";
-import Home from "./HomeComp/Home";
-import Ai from "./Farmers/Ai"
-import Navbar from "./HomeComp/Navbar";
-// Protected route component
+/**
+ * Main App Component
+ * Router configuration and route definitions
+ */
+
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ROUTES, USER_ROLES } from './constants';
+import { authStorage } from './utils/storage';
+
+// Pages
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import VerifyOtp from './pages/VerifyOtp';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import FarmerDashboard from './pages/FarmerDashboard';
+import AgentDashboard from './pages/AgentDashboard';
+import Home from './features/home/Home';
+import Ai from './features/credit/Ai';
+import Navbar from './features/home/Navbar';
+
+/**
+ * Protected Route Component
+ * Validates JWT token and user role
+ */
 const ProtectedRoute = ({ children, allowedRole }) => {
-  const token = localStorage.getItem("token");
-  const role = localStorage.getItem("role");
+  const token = authStorage.getToken();
+  const role = authStorage.getRole();
 
   if (!token) {
-    return <Navigate to="/login" />;
+    return <Navigate to={ROUTES.LOGIN} />;
   }
 
   if (allowedRole && role !== allowedRole) {
-    // Redirect to the appropriate dashboard based on role
     return (
       <Navigate
-        to={role === "user" ? "/farmer-dashboard" : "/agent-dashboard"}
+        to={role === USER_ROLES.FARMER ? ROUTES.FARMER_DASHBOARD : ROUTES.AGENT_DASHBOARD}
       />
     );
   }
@@ -38,40 +44,47 @@ const ProtectedRoute = ({ children, allowedRole }) => {
   return children;
 };
 
+/**
+ * Main App Component
+ */
 const App = () => {
   return (
-    
     <AuthProvider>
       <Navbar />
       <Routes>
         {/* Auth Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/verify-otp" element={<VerifyOtp />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/resetPassword/:token" element={<ResetPassword />} />
+        <Route path={ROUTES.LOGIN} element={<Login />} />
+        <Route path={ROUTES.SIGNUP} element={<Signup />} />
+        <Route path={ROUTES.VERIFY_OTP} element={<VerifyOtp />} />
+        <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+        <Route path={ROUTES.RESET_PASSWORD} element={<ResetPassword />} />
 
-        {/* Dashboard Routes */}
+        {/* Protected Dashboard Routes */}
         <Route
-          path="/farmer-dashboard"
+          path={ROUTES.FARMER_DASHBOARD}
           element={
-            <ProtectedRoute allowedRole="user">
+            <ProtectedRoute allowedRole={USER_ROLES.FARMER}>
               <FarmerDashboard />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/agent-dashboard"
+          path={ROUTES.AGENT_DASHBOARD}
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={USER_ROLES.AGENT}>
               <AgentDashboard />
             </ProtectedRoute>
           }
         />
-      <Route path="/personalised-ai" element={<Ai />} />
-        {/* Default Route */}
-        <Route path="/" element={<Home />} />
-        <Route path="*" element={<Navigate to="/login" />} />
+
+        {/* AI Prediction Route */}
+        <Route path={ROUTES.AI_PREDICTION} element={<Ai />} />
+
+        {/* Home Route */}
+        <Route path={ROUTES.HOME} element={<Home />} />
+
+        {/* Catch all - Redirect to login */}
+        <Route path="*" element={<Navigate to={ROUTES.LOGIN} />} />
       </Routes>
     </AuthProvider>
   );

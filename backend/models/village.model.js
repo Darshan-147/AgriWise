@@ -1,15 +1,20 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const VillageSchema = new mongoose.Schema({
-    name: { type: String, required: true }, // Village Name
+const VillageSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true, index: true },
     locations: [
-        {
-            dist_name: { type: String, required: true }, // District Name
-            state_name: { type: String, required: true }, // State Name
-            latitude: { type: String, required: true }, // Latitude
-            longitude: { type: String, required: true } // Longitude
-        }
-    ]
-}, { timestamps: true });
+      {
+        dist_name: { type: String, required: true, trim: true },
+        state_name: { type: String, required: true, trim: true },
+        latitude: { type: Number, required: true },
+        longitude: { type: Number, required: true },
+      },
+    ],
+  },
+  { timestamps: true }
+);
 
-export default mongoose.model('Village', VillageSchema);
+VillageSchema.index({ name: 1, "locations.dist_name": 1, "locations.state_name": 1 });
+
+export default mongoose.model("Village", VillageSchema);

@@ -21,7 +21,7 @@ const Alert = ({ type = 'info', message, onClose }) => {
             opacity: 0,
             duration: 0.3,
             ease: 'power2.in',
-            onComplete: onClose
+            onComplete: onClose,
           });
         }
       }, 5000);
@@ -53,7 +53,7 @@ const Alert = ({ type = 'info', message, onClose }) => {
               opacity: 0,
               duration: 0.3,
               ease: 'power2.in',
-              onComplete: onClose
+              onComplete: onClose,
             });
           }}
         >

@@ -19,7 +19,7 @@ const SignupForm = ({ onRoleChange }) => {
   const [alert, setAlert] = useState(null);
   const { signup, loading } = useAuth();
   const navigate = useNavigate();
-  
+
   // Notify parent component when role changes
   useEffect(() => {
     if (onRoleChange) {
@@ -33,7 +33,7 @@ const SignupForm = ({ onRoleChange }) => {
       ...formData,
       [name]: value,
     });
-    
+
     // Clear error when user types
     if (errors[name]) {
       setErrors({
@@ -45,50 +45,50 @@ const SignupForm = ({ onRoleChange }) => {
 
   const validate = () => {
     const newErrors = {};
-    
+
     if (!formData.username) {
       newErrors.username = 'Name is required';
     }
-    
+
     if (!formData.email) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
     }
-    
+
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validate()) return;
-    
+
     const result = await signup(formData);
-    
+
     if (result.success) {
       setAlert({
         type: 'success',
         message: 'Account created successfully! Please verify your email.',
       });
-      
+
       // Store email and role for OTP verification
       localStorage.setItem('tempEmail', formData.email);
       localStorage.setItem('tempRole', formData.role);
-      
+
       // Redirect to OTP verification page after a short delay
       setTimeout(() => {
         navigate('/verify-otp');
@@ -104,7 +104,7 @@ const SignupForm = ({ onRoleChange }) => {
   // Handle role selection with animation
   const handleRoleSelect = (role) => {
     if (role === formData.role) return;
-    
+
     // Animate the transition
     const container = document.querySelector('.role-selection-container');
     if (container) {
@@ -114,23 +114,17 @@ const SignupForm = ({ onRoleChange }) => {
         { opacity: 1, scale: 1, duration: 0.3, ease: 'power2.out' }
       );
     }
-    
+
     setFormData({
       ...formData,
-      role
+      role,
     });
   };
 
   return (
     <div>
-      {alert && (
-        <Alert 
-          type={alert.type} 
-          message={alert.message} 
-          onClose={() => setAlert(null)} 
-        />
-      )}
-      
+      {alert && <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           label="Full Name"
@@ -143,7 +137,7 @@ const SignupForm = ({ onRoleChange }) => {
           error={errors.username}
           required
         />
-        
+
         <Input
           label="Email"
           type="email"
@@ -155,7 +149,7 @@ const SignupForm = ({ onRoleChange }) => {
           error={errors.email}
           required
         />
-        
+
         <Input
           label="Password"
           type="password"
@@ -167,7 +161,7 @@ const SignupForm = ({ onRoleChange }) => {
           error={errors.password}
           required
         />
-        
+
         <Input
           label="Confirm Password"
           type="password"
@@ -179,19 +173,21 @@ const SignupForm = ({ onRoleChange }) => {
           error={errors.confirmPassword}
           required
         />
-        
+
         {/* Role selection */}
         <div className="mt-6 role-selection-container">
           <label className="block text-sm font-medium text-gray-700 mb-3">
             I want to register as:
           </label>
           <div className="flex space-x-4">
-            <div 
+            <div
               onClick={() => handleRoleSelect('user')}
               className={`flex-1 p-4 border rounded-lg cursor-pointer transition-all duration-200 
-                ${formData.role === 'user' 
-                  ? 'border-green-500 bg-green-50 shadow-md' 
-                  : 'border-gray-300 hover:border-gray-400'}`}
+                ${
+                  formData.role === 'user'
+                    ? 'border-green-500 bg-green-50 shadow-md'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
             >
               <div className="flex items-center">
                 <input
@@ -201,7 +197,9 @@ const SignupForm = ({ onRoleChange }) => {
                   onChange={() => {}}
                   className="h-4 w-4 text-green-600 focus:ring-green-500"
                 />
-                <span className={`ml-2 font-medium ${formData.role === 'user' ? 'text-green-700' : 'text-gray-700'}`}>
+                <span
+                  className={`ml-2 font-medium ${formData.role === 'user' ? 'text-green-700' : 'text-gray-700'}`}
+                >
                   Farmer
                 </span>
               </div>
@@ -209,13 +207,15 @@ const SignupForm = ({ onRoleChange }) => {
                 I want to check my credit score and apply for loans
               </p>
             </div>
-            
-            <div 
+
+            <div
               onClick={() => handleRoleSelect('admin')}
               className={`flex-1 p-4 border rounded-lg cursor-pointer transition-all duration-200 
-                ${formData.role === 'admin' 
-                  ? 'border-blue-500 bg-blue-50 shadow-md' 
-                  : 'border-gray-300 hover:border-gray-400'}`}
+                ${
+                  formData.role === 'admin'
+                    ? 'border-blue-500 bg-blue-50 shadow-md'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
             >
               <div className="flex items-center">
                 <input
@@ -225,7 +225,9 @@ const SignupForm = ({ onRoleChange }) => {
                   onChange={() => {}}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                 />
-                <span className={`ml-2 font-medium ${formData.role === 'admin' ? 'text-blue-700' : 'text-gray-700'}`}>
+                <span
+                  className={`ml-2 font-medium ${formData.role === 'admin' ? 'text-blue-700' : 'text-gray-700'}`}
+                >
                   Agent
                 </span>
               </div>
@@ -235,7 +237,7 @@ const SignupForm = ({ onRoleChange }) => {
             </div>
           </div>
         </div>
-        
+
         <Button
           type="submit"
           variant={formData.role === 'user' ? 'primary' : 'secondary'}
