@@ -3,7 +3,11 @@ import nodemailer from "nodemailer";
 import emailConfig from "../Config/env.js";
 
 const sendEmail = asyncHandler(async (options) => {
-  if (!emailConfig.EMAIL || !emailConfig.PASSWORD) {
+  if (
+    !emailConfig.EMAIL ||
+    !emailConfig.PASSWORD ||
+    emailConfig.PASSWORD === "your_app_specific_password"
+  ) {
     throw new Error("Email credentials are not configured.");
   }
 

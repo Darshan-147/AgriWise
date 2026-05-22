@@ -57,7 +57,9 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
     changeEmailVerificationOtp: String,
+    changeEmailVerificationOtpExpires: Date,
     otp: String,
+    otpExpires: Date,
     PasswordChangedAt: Date,
     PasswordResetToken: String,
     PasswordResetTokenExpires: Date,
@@ -102,6 +104,7 @@ userSchema.methods.createResetPasswordToken = function () {
 userSchema.methods.generateOtp = async function () {
   const otp = `${Math.floor(100000 + Math.random() * 900000)}`;
   this.otp = crypto.createHash("sha256").update(otp).digest("hex");
+  this.otpExpires = Date.now() + 10 * 60 * 1000;
   return otp;
 };
 
@@ -111,6 +114,7 @@ userSchema.methods.generateOtpForChangingEmail = async function () {
     .createHash("sha256")
     .update(changeEmailVerificationOtp)
     .digest("hex");
+  this.changeEmailVerificationOtpExpires = Date.now() + 10 * 60 * 1000;
   return changeEmailVerificationOtp;
 };
 

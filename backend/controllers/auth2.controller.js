@@ -84,6 +84,41 @@ const sendAuthToken = (res, user, statusCode, message) => {
 const getUserForAuth = async (email) =>
   User.findOne({ email }).select("+password +notVerified");
 
+const canExposeDevOtp = () => config.nodeEnv !== "production";
+
+const sendVerificationOtp = async (user) => {
+  const otp = await user.generateOtp();
+  await user.save({ validateBeforeSave: false });
+
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "Verify your email",
+      message: buildEmailTemplate({
+        heading: "Email verification",
+        description: "Use the OTP below to verify your AgriWise account.",
+        code: otp,
+        note: "This OTP is valid for 10 minutes.",
+      }),
+    });
+
+    return { sent: true };
+  } catch (error) {
+    if (canExposeDevOtp()) {
+      return {
+        sent: false,
+        devOtp: otp,
+        error: "Email is not configured. Use this development OTP or configure Gmail SMTP.",
+      };
+    }
+
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+    throw new ApiError(500, "There was an error sending the OTP email. Please try again later.");
+  }
+};
+
 export const signup = asyncHandler(async (req, res) => {
   const username = unwrapValue(req.body.username);
   const email = normalizeEmail(req.body.email);
@@ -121,12 +156,20 @@ export const signup = asyncHandler(async (req, res) => {
     role,
   });
 
-  return sendAuthToken(
-    res,
-    newUser,
-    201,
-    "Account created successfully. Please verify your email."
-  );
+  const verification = await sendVerificationOtp(newUser);
+
+  return res.status(201).json({
+    status: "success",
+    message: verification.sent
+      ? "Account created successfully. Please verify your email."
+      : "Account created successfully, but email delivery is not configured.",
+    notVerified: true,
+    devOtp: verification.devOtp,
+    emailWarning: verification.error,
+    data: {
+      user: serializeUser(newUser),
+    },
+  });
 });
 
 export const login = asyncHandler(async (req, res) => {
@@ -144,10 +187,16 @@ export const login = asyncHandler(async (req, res) => {
   }
 
   if (user.notVerified) {
+    const verification = await sendVerificationOtp(user);
+
     return res.status(200).json({
       status: "success",
-      message: "User is not verified.",
+      message: verification.sent
+        ? "User is not verified. A fresh OTP has been sent."
+        : "User is not verified. Email delivery is not configured.",
       notVerified: true,
+      devOtp: verification.devOtp,
+      emailWarning: verification.error,
     });
   }
 
@@ -290,29 +339,15 @@ export const getVarified = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found.");
   }
 
-  const otp = await user.generateOtp();
-  await user.save({ validateBeforeSave: false });
-
-  try {
-    await sendEmail({
-      email: user.email,
-      subject: "Verify your email",
-      message: buildEmailTemplate({
-        heading: "Email verification",
-        description: "Use the OTP below to verify your Bluelock account.",
-        code: otp,
-        note: "This OTP is valid for a limited time.",
-      }),
-    });
-  } catch (error) {
-    user.otp = undefined;
-    await user.save({ validateBeforeSave: false });
-    throw new ApiError(500, "There was an error sending the OTP email. Please try again later.");
-  }
+  const verification = await sendVerificationOtp(user);
 
   res.status(200).json({
     status: true,
-    message: "OTP sent to the registered email address.",
+    message: verification.sent
+      ? "OTP sent to the registered email address."
+      : "Email delivery is not configured. Use the development OTP.",
+    devOtp: verification.devOtp,
+    emailWarning: verification.error,
   });
 });
 
@@ -324,7 +359,10 @@ export const verifyOtp = asyncHandler(async (req, res) => {
   }
 
   const hashedOtp = crypto.createHash("sha256").update(userOtp).digest("hex");
-  const user = await User.findOne({ otp: hashedOtp }).select("+notVerified");
+  const user = await User.findOne({
+    otp: hashedOtp,
+    otpExpires: { $gt: Date.now() },
+  }).select("+notVerified");
 
   if (!user) {
     throw new ApiError(404, "Invalid or expired OTP.");
@@ -332,6 +370,7 @@ export const verifyOtp = asyncHandler(async (req, res) => {
 
   user.notVerified = false;
   user.otp = undefined;
+  user.otpExpires = undefined;
   await user.save({ validateBeforeSave: false });
 
   res.status(200).json({
@@ -424,6 +463,7 @@ export const changeEmailVerificationOtpReq = asyncHandler(async (req, res) => {
     });
   } catch (error) {
     user.changeEmailVerificationOtp = undefined;
+    user.changeEmailVerificationOtpExpires = undefined;
     await user.save({ validateBeforeSave: false });
     throw new ApiError(500, "There was an error sending the OTP email. Please try again later.");
   }
@@ -442,13 +482,17 @@ export const changeEmailVerifyOtp = asyncHandler(async (req, res) => {
   }
 
   const hashedOtp = crypto.createHash("sha256").update(userOtp).digest("hex");
-  const user = await User.findOne({ changeEmailVerificationOtp: hashedOtp });
+  const user = await User.findOne({
+    changeEmailVerificationOtp: hashedOtp,
+    changeEmailVerificationOtpExpires: { $gt: Date.now() },
+  });
 
   if (!user) {
     throw new ApiError(404, "Invalid or expired OTP.");
   }
 
   user.changeEmailVerificationOtp = undefined;
+  user.changeEmailVerificationOtpExpires = undefined;
   await user.save({ validateBeforeSave: false });
 
   res.status(200).json({

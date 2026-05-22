@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const riskSchema = new mongoose.Schema(
   {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "userModel", index: true },
     State: { type: String, required: true, trim: true, index: true },
     City: { type: String, required: true, trim: true },
     Crop: { type: String, required: true, trim: true },

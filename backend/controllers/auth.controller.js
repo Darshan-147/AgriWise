@@ -2,8 +2,9 @@ import Farmer from "../models/farmer.model.js";
 import Agent from "../models/agent.model.js"; // Changed from Bank to Agent
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import config from "../Config/app.config.js";
 
-const SECRET_KEY = process.env.JWT_SECRET;
+const SECRET_KEY = config.jwtSecret;
 
 // User Registration (Farmer or Agent)
 export const registerUser = async (req, res) => {

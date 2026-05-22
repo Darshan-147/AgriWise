@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Send,
@@ -22,6 +23,7 @@ import {
   Trash2,
   Download,
 } from 'lucide-react';
+import { aiService } from '../../services/api';
 
 const FARMER_KEYWORDS = [
   'loan',
@@ -47,23 +49,11 @@ const FARMER_KEYWORDS = [
 const responseCache = new Map();
 const CACHE_EXPIRY = 60 * 60 * 1000;
 
-const getModelForQuery = (query) => {
-  if (query.split(' ').length > 15 || query.includes(',')) {
-    return 'gemini-1.5-pro';
-  }
-  return 'gemini-1.5-flash';
-};
-
 const sanitizeInput = (input) => {
   return input
     .replace(/[^\p{L}\p{N}\s.,?!-:;()]/gu, '')
     .trim()
     .substring(0, 800);
-};
-
-const containsFarmerKeywords = (input) => {
-  const lowerInput = input.toLowerCase();
-  return FARMER_KEYWORDS.some((keyword) => lowerInput.includes(keyword));
 };
 
 const getCacheKey = (input) => {
@@ -82,8 +72,6 @@ const VOICE_LANGUAGES = {
 };
 
 const Ai = () => {
-  const API_KEY = 'AIzaSyCiO0Ep9g6YCDcdks_Xar-xm_4VNemkTyM';
-
   // State initialization
   const [messages, setMessages] = useState([
     {
@@ -414,7 +402,6 @@ const Ai = () => {
         }
       }
 
-      const model = getModelForQuery(userInput);
       const cleanInput = sanitizeInput(userInput);
 
       // Farmer-specific prompts
@@ -547,60 +534,12 @@ const Ai = () => {
 
       const promptLang = promptTemplate[detectedLang] || promptTemplate.en;
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `${promptLang}
-  
-  User input: ${cleanInput}`,
-                  },
-                ],
-              },
-            ],
-            safetySettings: [
-              {
-                category: 'HARM_CATEGORY_HARASSMENT',
-                threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-              },
-              {
-                category: 'HARM_CATEGORY_HATE_SPEECH',
-                threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-              },
-              {
-                category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-                threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-              },
-              {
-                category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-                threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-              },
-            ],
-            generationConfig: {
-              temperature: 0.2,
-              topP: 0.7,
-              maxOutputTokens: 800,
-            },
-          }),
-        }
-      );
+      const { data } = await aiService.chat({
+        prompt: promptLang,
+        userInput: cleanInput,
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API Error Details:', errorData);
-        throw new Error(`API Error: ${errorData.error?.message || 'Unknown error'}`);
-      }
-
-      const data = await response.json();
-      const aiText =
-        data.candidates?.[0]?.content?.parts[0]?.text ||
-        "I'm unable to provide information right now. Please try again.";
+      const aiText = data.text || "I'm unable to provide information right now. Please try again.";
 
       const fullResponse = aiText + disclaimer;
 

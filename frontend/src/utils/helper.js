@@ -409,7 +409,7 @@ export const isEmptyObject = (obj) => {
 export const safeJsonParse = (jsonString, fallback = {}) => {
   try {
     return JSON.parse(jsonString);
-  } catch (e) {
+  } catch {
     return fallback;
   }
 };

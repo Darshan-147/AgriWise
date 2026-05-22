@@ -81,12 +81,11 @@ const SignupForm = ({ onRoleChange }) => {
 
     if (result.success) {
       setAlert({
-        type: 'success',
-        message: 'Account created successfully! Please verify your email.',
+        type: result.devOtp ? 'warning' : 'success',
+        message: result.emailWarning || 'Account created successfully! Please verify your email.',
       });
 
       // Store email and role for OTP verification
-      localStorage.setItem('tempEmail', formData.email);
       localStorage.setItem('tempRole', formData.role);
 
       // Redirect to OTP verification page after a short delay

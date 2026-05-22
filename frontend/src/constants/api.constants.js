@@ -38,6 +38,10 @@ export const API_ENDPOINTS = {
     GET_ALL: '/users/all',
     GET_BY_ID: '/users',
   },
+
+  AI: {
+    CHAT: '/ai/chat',
+  },
 };
 
 export const REQUEST_TIMEOUT = 30000; // 30 seconds

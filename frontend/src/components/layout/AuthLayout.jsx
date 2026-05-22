@@ -44,7 +44,7 @@ const AuthLayout = ({
   return (
     <div
       ref={containerRef}
-      className={`min-h-screen flex items-center justify-center bg-gradient-to-br ${colorClass} p-4`}
+      className={`min-h-screen flex items-center justify-center bg-gradient-to-br ${colorClass} px-4 pb-4 pt-24`}
     >
       <div className="max-w-md w-full bg-white rounded-xl shadow-xl overflow-hidden">
         <div className="p-8">

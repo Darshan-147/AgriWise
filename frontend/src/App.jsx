@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ROUTES, USER_ROLES } from './constants';
 import { authStorage } from './utils/storage';
 
@@ -49,7 +48,7 @@ const ProtectedRoute = ({ children, allowedRole }) => {
  */
 const App = () => {
   return (
-    <AuthProvider>
+    <>
       <Navbar />
       <Routes>
         {/* Auth Routes */}
@@ -83,10 +82,10 @@ const App = () => {
         {/* Home Route */}
         <Route path={ROUTES.HOME} element={<Home />} />
 
-        {/* Catch all - Redirect to login */}
-        <Route path="*" element={<Navigate to={ROUTES.LOGIN} />} />
+        {/* Catch all - Redirect home */}
+        <Route path="*" element={<Navigate to={ROUTES.HOME} />} />
       </Routes>
-    </AuthProvider>
+    </>
   );
 };
 

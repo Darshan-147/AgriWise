@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import logo from '../assets/mainlogo.png';
+import { creditService } from '../services/api';
 
 const FarmerDashboard = () => {
   const [language, setLanguage] = useState('english');
@@ -183,13 +183,6 @@ const FarmerDashboard = () => {
   const cropOptions = ['Bajra', 'Groundnut', 'Jowar', 'Wheat', 'Maize', 'Rice', 'Sugarcane'];
   const soilTypeOptions = ['Sandy Loam', 'Mixed Soil', 'Sandy Soil', 'Silty Clay'];
   const nutrientLevelOptions = ['Low', 'Medium', 'High'];
-  const riskCategoryOptions = [
-    'Very Low Risk',
-    'Low Risk',
-    'Medium Risk',
-    'High Risk',
-    'Very High Risk',
-  ];
   const languageOptions = [
     { value: 'english', label: 'English' },
     { value: 'hindi', label: 'हिंदी (Hindi)' },
@@ -227,11 +220,11 @@ const FarmerDashboard = () => {
       Credit_Score: parseInt(formData.Credit_Score),
     };
 
-    axios
-      .post('http://localhost:5000/credit/store', apiData)
-      .then((response) => {
-        console.log('Data submitted successfully:', response.data);
-        setRiskScore(response.data.predictedRiskScore);
+    creditService
+      .storeRiskData(apiData)
+      .then(({ data }) => {
+        console.log('Data submitted successfully:', data);
+        setRiskScore(data.predictedRiskScore);
         setLoading(false);
         alert(t.formSuccess);
       })
@@ -319,7 +312,7 @@ const FarmerDashboard = () => {
 
   return (
     <div className="bg-gradient-to-r from-green-50 to-blue-50 min-h-screen">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pb-8 pt-24">
         {/* Language selector */}
         <div className="flex justify-end mb-4">
           <div className="w-48">

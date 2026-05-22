@@ -93,10 +93,17 @@ export const dataService = {
 };
 
 /**
+ * AI Services
+ */
+export const aiService = {
+  chat: (payload) => api.post(API_ENDPOINTS.AI.CHAT, payload),
+};
+
+/**
  * User Services
  */
 export const userService = {
-  getAll: () => api.get(API_ENDPOINTS.USERS.GET_ALL),
+  getAll: (params = {}) => api.get(API_ENDPOINTS.USERS.GET_ALL, { params }),
   getById: (userId) => api.get(`${API_ENDPOINTS.USERS.GET_BY_ID}/${userId}`),
 };
 

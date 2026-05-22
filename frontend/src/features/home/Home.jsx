@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+/* eslint-disable no-unused-vars */
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   FaSatellite,
@@ -25,11 +26,18 @@ import { BsGraphUp, BsCalendarCheck, BsBank2, BsShield } from 'react-icons/bs';
 import { RiGovernmentLine, RiPlantLine, RiMoneyDollarCircleLine } from 'react-icons/ri';
 import { useTypewriter, Cursor } from 'react-simple-typewriter';
 import { useTranslation } from 'react-i18next';
-import Navbar from './Navbar';
-// Simplified Navbar component with Language Selector
+import { useNavigate } from 'react-router-dom';
+
+const heroParticles = Array.from({ length: 50 }, (_, i) => ({
+  top: `${((i * 37) % 100) + 0.5}%`,
+  left: `${((i * 61) % 100) + 0.5}%`,
+  opacity: 0.2 + ((i * 13) % 50) / 100,
+  duration: 3 + (i % 5) * 0.4,
+}));
 
 const Home = () => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
 
   // Get the typewriter words from translation
   const typewriterWords = t('hero.typewriter', { returnObjects: true }) || [
@@ -58,8 +66,6 @@ const Home = () => {
 
   return (
     <main className="w-full overflow-x-hidden bg-gray-900 text-white">
-      <Navbar />
-
       {/* Hero Section - Redesigned without 3D model */}
       <section id="home" className="relative min-h-screen w-full bg-[#0B1120] pt-24">
         <div className="absolute inset-0 overflow-hidden">
@@ -67,21 +73,21 @@ const Home = () => {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-900/30 via-gray-900/70 to-[#0B1120]" />
 
           {/* Animated dots */}
-          {[...Array(50)].map((_, i) => (
+          {heroParticles.map((particle, i) => (
             <motion.div
               key={`star-${i}`}
               className="absolute h-1 w-1 bg-emerald-400 rounded-full"
               style={{
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-                opacity: Math.random() * 0.7,
+                top: particle.top,
+                left: particle.left,
+                opacity: particle.opacity,
               }}
               animate={{
                 scale: [1, 1.5, 1],
                 opacity: [0.1, 0.5, 0.1],
               }}
               transition={{
-                duration: 3 + Math.random() * 2,
+                duration: particle.duration,
                 repeat: Infinity,
                 delay: i * 0.1,
               }}
@@ -110,6 +116,7 @@ const Home = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/signup')}
                 className="bg-emerald-500 hover:bg-emerald-600 text-white px-10 py-4 rounded-full text-lg font-semibold transition-all shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40"
               >
                 {t('hero.getStarted')}
@@ -494,6 +501,7 @@ const Home = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate('/signup')}
                   className="bg-white text-emerald-800 hover:bg-gray-100 px-8 py-3 rounded-lg font-semibold shadow-lg"
                 >
                   {t('cta.applyCredit')}
@@ -501,6 +509,7 @@ const Home = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate('/signup')}
                   className="bg-transparent text-white border-2 border-white hover:bg-white/10 px-8 py-3 rounded-lg font-semibold"
                 >
                   {t('cta.partnerWithUs')}

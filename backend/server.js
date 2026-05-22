@@ -8,6 +8,7 @@ import connectDB from "./Db/connectDb.js";
 import authRoutes2 from "./routes/auth2.route.js";
 import creditRoutes from "./routes/credit.routes.js";
 import userRoutes from "./routes/user.routes.js";
+import aiRoutes from "./routes/ai.routes.js";
 import config from "./Config/app.config.js";
 import { globalErrorHandler, notFoundHandler } from "./Middleware/error.middleware.js";
 
@@ -56,6 +57,7 @@ app.use("/auth", authRoutes);
 app.use("/auth2", authRoutes2);
 app.use("/credit", creditRoutes);
 app.use("/users", userRoutes);
+app.use("/ai", aiRoutes);
 
 app.use(notFoundHandler);
 app.use(globalErrorHandler);

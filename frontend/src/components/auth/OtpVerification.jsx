@@ -4,6 +4,7 @@ import Input from '../common/Input';
 import Button from '../common/Button';
 import Alert from '../common/Alert';
 import { useAuth } from '../../hooks/useAuth';
+import { authStorage } from '../../utils/storage';
 
 const OtpVerification = () => {
   const [otp, setOtp] = useState('');
@@ -14,7 +15,8 @@ const OtpVerification = () => {
   const { verifyOtp, requestOtp, loading } = useAuth();
   const navigate = useNavigate();
 
-  const email = localStorage.getItem('tempEmail');
+  const email = authStorage.getTempEmail() || localStorage.getItem('tempEmail');
+  const verificationMeta = authStorage.getUserData();
 
   useEffect(() => {
     if (!email) {
@@ -55,7 +57,9 @@ const OtpVerification = () => {
       });
 
       // Clear temporary email
+      authStorage.removeTempEmail();
       localStorage.removeItem('tempEmail');
+      localStorage.removeItem('tempRole');
 
       // Redirect to login page after a short delay
       setTimeout(() => {
@@ -98,6 +102,15 @@ const OtpVerification = () => {
           <br />
           <span className="font-medium text-gray-800">{email}</span>
         </p>
+        {verificationMeta?.devOtp && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-left text-sm text-amber-800">
+            <p className="font-medium">Development OTP: {verificationMeta.devOtp}</p>
+            <p className="mt-1">
+              {verificationMeta.emailWarning ||
+                'Email delivery is not configured. Add Gmail SMTP credentials to backend/.env.'}
+            </p>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">

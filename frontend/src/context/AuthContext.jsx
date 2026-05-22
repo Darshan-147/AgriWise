@@ -2,6 +2,7 @@
  * Auth Context
  * Global authentication state management
  */
+/* eslint-disable react-refresh/only-export-components */
 
 import { createContext, useState, useEffect } from 'react';
 import { authService } from '../services/api';
@@ -49,8 +50,11 @@ export const AuthProvider = ({ children }) => {
 
       if (data.notVerified) {
         authStorage.setTempEmail(credentials.email);
+        if (data.devOtp) {
+          authStorage.setUserData({ devOtp: data.devOtp, emailWarning: data.emailWarning });
+        }
         navigate('/verify-otp');
-        return { notVerified: true };
+        return { notVerified: true, devOtp: data.devOtp, emailWarning: data.emailWarning };
       }
 
       authStorage.setToken(data.token);
@@ -80,8 +84,11 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       const { data } = await authService.signup(userData);
       authStorage.setTempEmail(userData.email);
+      if (data.devOtp) {
+        authStorage.setUserData({ devOtp: data.devOtp, emailWarning: data.emailWarning });
+      }
       logger.info('Signup successful, OTP sent');
-      return { success: true };
+      return { success: true, devOtp: data.devOtp, emailWarning: data.emailWarning };
     } catch (err) {
       const errorData = handleError(err);
       setError(errorData.message);
@@ -108,9 +115,12 @@ export const AuthProvider = ({ children }) => {
   const requestOtp = async (email) => {
     try {
       setLoading(true);
-      await authService.getOtp({ emailId: email });
+      const { data } = await authService.getOtp(email);
+      if (data.devOtp) {
+        authStorage.setUserData({ devOtp: data.devOtp, emailWarning: data.emailWarning });
+      }
       logger.info('OTP sent to email');
-      return { success: true };
+      return { success: true, devOtp: data.devOtp, emailWarning: data.emailWarning };
     } catch (err) {
       const errorData = handleError(err);
       return { success: false, error: errorData.message };
@@ -125,7 +135,8 @@ export const AuthProvider = ({ children }) => {
   const verifyOtp = async (otp) => {
     try {
       setLoading(true);
-      const { data } = await authService.verifyOtp({ userOtp: otp });
+      const { data } = await authService.verifyOtp(otp);
+      authStorage.removeUserData();
       logger.info('OTP verified successfully');
       return { success: data.success };
     } catch (err) {
